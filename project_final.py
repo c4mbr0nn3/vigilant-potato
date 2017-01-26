@@ -7,17 +7,13 @@ Created on Sun Jan 22 17:49:12 2017
 import time
 import pandas as pd
 import numpy as np
-from sklearn.model_selection import train_test_split
-#from tpot import TPOTRegressor
 from sklearn import linear_model
 from sklearn import metrics
 from sklearn.neural_network import MLPRegressor
 from sklearn.preprocessing import StandardScaler
-from sklearn.decomposition import PCA
 from sklearn.model_selection import GridSearchCV
-from sklearn.model_selection import RandomizedSearchCV
-from scipy.stats import uniform as sp_rand
 import matplotlib.pyplot as pl
+
 #start cronometro
 t0 = time.time()
 
@@ -37,30 +33,13 @@ df_eeri.columns = df_eeri.columns.map(lambda x: str(x) + '_eeri')
 
 #merge 12 coeff
 df_global=pd.concat([df_crude,df_sp,df_eeri], axis=1).drop(['Crude Oil_crude','SP500_sp','EERI EUR_eeri'],axis=1)
-#df_global['Crude Oil_crude']=df_global['Crude Oil_crude'].interpolate(method='time')
-#df_global['SP500_sp']=df_global['SP500_sp'].interpolate(method='time')
-#df_global['EERI EUR_eeri']=df_global['EERI EUR_eeri'].interpolate(method='time')
 df_sptr=df_sptr.join(df_global,how='inner').iloc[::-1]
 df_eur=df_eur.join(df_global,how='inner').iloc[::-1]
 df_eurusd=df_eurusd.join(df_global,how='inner').iloc[::-1]
 df_comodity=df_comodity.join(df_global,how='inner').iloc[::-1]
 df_index=df_index.join(df_global,how='inner').iloc[::-1]
 
-##selezione 6 migliori coeff
-#df_temp=pd.concat([df_index['PX_LAST'],df_index.iloc[:,1:].shift(lag)],axis=1).dropna()
-#df_corrMatrix=df_temp.corr()
-#np.fill_diagonal(df_corrMatrix.values, np.NaN)
-#df_corrMatrix[df_corrMatrix < 0] = np.NaN
-#df_corrMatrix=df_corrMatrix.drop(['PX_LAST'])
-#df_corrMatrix['avg'] = df_corrMatrix.mean(axis=1)
-#df_corrMatrix.sort_values('avg',ascending=True,inplace=True)
-##df_corrMatrix.sort_values('PX_LAST',ascending=True,inplace=True)
-#
-##take best 6
-#feature=list(df_corrMatrix.head(n=6).index.values)
-#
-#X=df_index[feature]
-X=df_sptr#.iloc[:,1:]
+X=df_sptr
 y=df_sptr['PX_LAST']
 
 up_threshold=0.02
@@ -109,12 +88,6 @@ for index in range(int((len(X)-k)/lag)-2):  #scorriamo ogni lag
     X_train=X_train[feature]
     X_test=X_test[feature]
 
-
-#    print(X_train.shape)
-#    print(y_train.shape)
-#    print(X_test.shape)
-#    print(y_test.shape)
-
 # ONLY FOR: MLPREG
     scaler = StandardScaler()  
 ## Don't cheat - fit only on training data
@@ -148,14 +121,6 @@ for index in range(int((len(X)-k)/lag)-2):  #scorriamo ogni lag
     y_total=pd.concat([y_total,y_pred])
     y_total2=pd.concat([y_total2,y_pred2])
     y_total3=pd.concat([y_total3,y_pred3])
-#    print(X_train.shape)
-#    print(y_train.shape)
-#    print(X_test.shape)
-#    print(y_test.shape)
-#    y_res=pd.concat([y_pred,y_test], axis=1)
-#    y_res.columns=['PX_pred','PX_test']
-#    y_res.plot()
-#    print (np.sqrt(metrics.mean_squared_error(y_test,y_pred)))
 
  #STRATEGIA 1
     start=y_test[len(y_test)-1] #punto partenza calcolo portfolio
@@ -180,7 +145,6 @@ for index in range(int((len(X)-k)/lag)-2):  #scorriamo ogni lag
     if (ret>up_threshold):
         strat=y_test[(lag-1)]-y_train[len(y_train)-1]
         if ((sum(gain)/len(gain))>0.5):
-#            strat=y_test[(lag-1)]-y_train[len(y_train)-1]
             portfolio2=np.append(portfolio2,strat)
             invs2=invs2+y_train[len(y_train)-1]
         else :
@@ -225,8 +189,6 @@ for index in range(int((len(X)-k)/lag)-2):  #scorriamo ogni lag
 
 y_total4=y_total.join(y,how='inner')
 
-#y_total.columns=['Prediction','Real']
-#y_total.plot()
 pl.plot(y_total4, color='green',label="Real Data")
 pl.plot(y_total, color='yellow',label="Linear Regression")
 pl.plot(y_total2, color='red',label="ElasticNetCV")
